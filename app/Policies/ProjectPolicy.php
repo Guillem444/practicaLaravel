@@ -11,17 +11,17 @@ class ProjectPolicy
     /**
      * Determine whether the user can view any models.
      */
-    public function edit(User $user, Project $project): bool
-    {
-        return $user->role === 'admin';
-    }
+    public function update(User $user, Project $project): bool
+{
+    return true; // Todos los logueados pueden editar (o comprueba si es dueño)
+}
 
     /**
      * Determine whether the user can create models.
      */
     public function create(User $user, Project $project): bool
     {
-        return $user->role === 'admin';
+        return true;
     }
 
     /**

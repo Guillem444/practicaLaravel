@@ -10,16 +10,17 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard',[ProjectController::class, 'index']
-)->name('dashboard');
+Route::get('/dashboard', function () {
+    return redirect()->route('projects.index');
+})->name('dashboard');
 
 Route::get('/details',[ProjectController::class, 'show']
 )->name('details');
 
 Route::get('/edit',[ProjectController::class, 'edit']
-)->name('edit');
+)->middleware('auth')->name('edit');
 
-Route::resource('projects', ProjectController::class)->middleware('auth');
+Route::resource('projects', ProjectController::class);
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
