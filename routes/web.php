@@ -14,11 +14,7 @@ Route::get('/dashboard', function () {
     return redirect()->route('projects.index');
 })->name('dashboard');
 
-Route::get('/details',[ProjectController::class, 'show']
-)->name('details');
 
-Route::get('/edit',[ProjectController::class, 'edit']
-)->middleware('auth')->name('edit');
 
 Route::resource('projects', ProjectController::class);
 

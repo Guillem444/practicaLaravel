@@ -23,7 +23,7 @@ class ProjectController extends Controller
 
 public function show(Project $project)
 {
-    $project->load(['team', 'technologies']);
+    $project->load(['team', 'technologies', 'partner']);
     return view('projects.show', compact('project'));
 }
 
@@ -31,37 +31,40 @@ public function create()
 {
     $teams = Team::all();
     $technologies = Technology::all();
-    $partner = Partner::all();
+    $partners = Partner::all();
 
-    return view('projects.create', compact('teams', 'technologies', 'partner'));
+    return view('projects.create', compact('teams', 'technologies', 'partners'));
 }
 
 public function store(Request $request)
-{
-    // Validación
-    $request->validate([
-        'title' => 'required|min:3',
-        'publication_year' => 'required|integer|min:1900',
-        'price' => 'required|numeric',
-        'stock' => 'required|integer',
-        'team_id' => 'required|exists:teams,id',
-        'partner_id' => 'nullable|exists:partners,id', // Validar partner
-        'technologies' => 'array'
-    ]);
+    {
+        // 1. Validar
+        $request->validate([
+            'title' => 'required|string|min:3|max:255',
+            'publication_year' => 'required|integer|min:1900',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            'team_id' => 'required|exists:teams,id',
+            'partner_id' => 'nullable|exists:partners,id', // Puede ser null
+            'technologies' => 'array', // Debe ser una lista
+            'technologies.*' => 'exists:technologies,id' // Cada item debe existir
+        ]);
 
-    $project = Project::create($request->all());
+        // 2. Preparar datos
+        $data = $request->all();
+        // Checkbox: Si está marcado es true, si no, false
+        $data['is_visible'] = $request->has('is_visible');
 
-    // Guardar checkbox booleano
-    $project->is_visible = $request->has('is_visible');
-    $project->save();
+        // 3. Crear
+        $project = Project::create($data);
 
-    // Sincronizar tecnologías (Many to Many)
-    if ($request->has('technologies')) {
-        $project->technologies()->sync($request->technologies);
+        // 4. Relaciones Muchos a Muchos (Sync)
+        // Si no se seleccionó ninguna tecnología, pasamos un array vacío []
+        $project->technologies()->sync($request->input('technologies', []));
+
+        return redirect()->route('projects.index')->with('success', 'Projecte creat correctament!');
     }
-
-    return redirect()->route('projects.index')->with('success', 'Creat correctament');
-}
 
 public function edit(Project $project)
 {
@@ -72,26 +75,30 @@ public function edit(Project $project)
 }
 
 public function update(Request $request, Project $project)
-{
-   $request->validate([
-        'title' => 'required|min:3',
-        'publication_year' => 'required|integer|min:1900',
-        'price' => 'required|numeric',
-        'stock' => 'required|integer',
-        'team_id' => 'required|exists:teams,id',
-        'partner_id' => 'nullable|exists:partners,id', 
-        'technologies' => 'array'
-    ]);
+    {
+        // 1. Validar (Igual que store)
+        $request->validate([
+            'title' => 'required|string|min:3|max:255',
+            'publication_year' => 'required|integer|min:1900',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            'team_id' => 'required|exists:teams,id',
+            'partner_id' => 'nullable|exists:partners,id',
+            'technologies' => 'array',
+        ]);
 
-    $project->update($request->all());
+        // 2. Actualizar datos
+        $data = $request->all();
+        $data['is_visible'] = $request->has('is_visible');
+        
+        $project->update($data);
 
-    $project->is_visible = $request->has('is_visible');
-    $project->save();
+        // 3. Sync de tecnologías
+        $project->technologies()->sync($request->input('technologies', []));
 
-    $project->technologies()->sync($request->input('technologies', []));
-
-    return redirect()->route('projects.index')->with('success', 'Actualitzat');
-}
+        return redirect()->route('projects.index')->with('success', 'Projecte actualitzat correctament!');
+    }
 
 public function destroy(Project $project) {
     $this->authorize('delete', $project);
